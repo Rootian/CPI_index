@@ -4,66 +4,87 @@ import java.util.ArrayList;
 
 
 public class CPI_index {
-	private static final double EARTH_RADIUS = 6371393; // 平均半径,单位：m
-	static clustered_point[] centers; //聚类中心集
-	static int num_cluster; //聚类中心的个数
+	private static final double EARTH_RADIUS = 6371393; 
+	static clustered_point[] centers; //total cluster centers
+	static int num_cluster; //number of clusters
+	static double cp;
 
 	public static void main(String[] args) {
-		// 读取CSV文件中的聚类点数据
-		String filePath = new String("bin\\512x512.csv");
+		// read csv file
+		String filePath = new String("/Users/aaronkb/Desktop/512x512.csv");
 		ReadCSV file_csv = new ReadCSV(filePath);
 		ArrayList<clustered_point> points = file_csv.read(filePath);
 //		System.out.printf("test %d",file_csv.num_cluster);
 		num_cluster = file_csv.num_cluster;
 		centers = new clustered_point[file_csv.num_cluster];
-		centers = cal_centers(points);
+		for(int i = 0; i < num_cluster; i++) {
+			centers[i] = cal_center(points,i+1);
+		}
+//		System.out.print(centers[186].index);
+		cp = 0;
+		//calculate cp of all points
+		for (int i = 0; i < num_cluster; i ++) {
+			cp += cal_cp(points,centers[i],i+1);
+		}
+		System.out.print(cp);
+
 		
 	}
-	public static clustered_point[] cal_centers(ArrayList<clustered_point> points) {
-		//计算聚类点中心
-		double X = 0, Y = 0, Z = 0;
-		
-		for(clustered_point cpoint : points) {
-			double lat,lon,x,y,z;
-			lon = cpoint.point.getX() * Math.PI / 180;
-			lat = cpoint.point.getY() * Math.PI / 180;
-			x = Math.cos(lat) * Math.cos(lon);  
-	        y = Math.cos(lat) * Math.sin(lon);  
-	        z = Math.sin(lat);  
-	        X += x;  
-	        Y += y;  
-	        Z += z; 
-	        
-	        double Lon = Math.Atan2(Y, X);  
-	        double Hyp = Math.Sqrt(X * X + Y * Y);  
-	        double Lat = Math.Atan2(Z, Hyp);  
-	        return new GeoCoordinate(Lat * 180 / Math.PI, Lon * 180 / Math.PI);  
+	public static double cal_cp(ArrayList<clustered_point> cpoints,clustered_point cluster_center,int index) {
+		//calculate CP for every cluster
+		double cpi = 0;
+		int count = 0;
+		for(clustered_point cpoint : cpoints) {
+			if(cpoint.index == index) {
+				cpi += getDistance(cpoint.point, cluster_center.point);
+				count ++;
+			}
 		}
-		
-		return null;
+		cpi = cpi / count;
+		return cpi;
+	}
+	public static clustered_point cal_center(ArrayList<clustered_point> cpoints,int index) {
+		//calculate center
+		int count = 0;
+		double X = 0, Y = 0, Z = 0;
+		for(clustered_point cpoint : cpoints) {
+			if(cpoint.index == index) {
+				count ++;
+				double lat,lon,x,y,z;
+				lon = cpoint.point.getX() * Math.PI / 180;
+				lat = cpoint.point.getY() * Math.PI / 180;
+				x = Math.cos(lat) * Math.cos(lon);  
+		        y = Math.cos(lat) * Math.sin(lon);  
+		        z = Math.sin(lat);  
+		        X += x;  
+		        Y += y;  
+		        Z += z; 
+			}	        
+		}
+		X = X / count;
+		Y = Y / count;
+		Z = Z / count;
+        double Lon = Math.atan2(Y, X);  
+        double Hyp = Math.sqrt(X * X + Y * Y);  
+        double Lat = Math.atan2(Z, Hyp); 
+		double center_lat = Lat * 180 / Math.PI;
+		double center_lon = Lon * 180 / Math.PI;
+		Point2D p = new Point2D.Double(center_lon,center_lat);
+		clustered_point center = new clustered_point(p, index);
+		return center;
 	}
 	
-	/**
-	 * 通过AB点经纬度获取距离
-	 * @param pointA A点(经，纬)
-	 * @param pointB B点(经，纬)
-	 * @return 距离(单位：米)
-	 */
+	
 	public static double getDistance(Point2D pointA, Point2D pointB) {
-	    // 经纬度（角度）转弧度。弧度用作参数，以调用Math.cos和Math.sin
-	    double radiansAX = Math.toRadians(pointA.getX()); // A经弧度
-	    double radiansAY = Math.toRadians(pointA.getY()); // A纬弧度
-	    double radiansBX = Math.toRadians(pointB.getX()); // B经弧度
-	    double radiansBY = Math.toRadians(pointB.getY()); // B纬弧度
+	    double radiansAX = Math.toRadians(pointA.getX()); 
+	    double radiansAY = Math.toRadians(pointA.getY()); 
+	    double radiansBX = Math.toRadians(pointB.getX()); 
+	    double radiansBY = Math.toRadians(pointB.getY()); 
 
-	    // 公式中“cosβ1cosβ2cos（α1-α2）+sinβ1sinβ2”的部分，得到∠AOB的cos值
 	    double cos = Math.cos(radiansAY) * Math.cos(radiansBY) * Math.cos(radiansAX - radiansBX)
 	            + Math.sin(radiansAY) * Math.sin(radiansBY);
-//	    System.out.println("cos = " + cos); // 值域[-1,1]
-	    double acos = Math.acos(cos); // 反余弦值
-//	    System.out.println("acos = " + acos); // 值域[0,π]
-//	    System.out.println("∠AOB = " + Math.toDegrees(acos)); // 球心角 值域[0,180]
-	    return EARTH_RADIUS * acos; // 最终结果
+	    double acos = Math.acos(cos);
+	    return EARTH_RADIUS * acos; 
 	}
 
 }
@@ -76,7 +97,7 @@ class ReadCSV{
 	}
 	public ArrayList<clustered_point> read(String file) {
 		try {
-			//读取聚类数据
+			//read file
 			BufferedReader reader = new BufferedReader(new FileReader(filePath));
 			ArrayList<clustered_point> points = new ArrayList<clustered_point>();
 			String line = null;
@@ -84,7 +105,7 @@ class ReadCSV{
 			while((line = reader.readLine()) != null) {
 				String[] item = line.split(",");
 				if (flag == 1) {
-					//获取聚类个数
+					//read num of centers
 					num_cluster = Integer.parseInt(item[2]);
 					flag = 0;
 				}
@@ -97,7 +118,7 @@ class ReadCSV{
 		}
 
 		catch(IOException e){
-			System.out.println("读取文件出错!");
+			System.out.println("Read file error!");
 		}
 		return null;
 	}
