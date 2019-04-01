@@ -33,6 +33,11 @@ public class CPI_index {
 	        X += x;  
 	        Y += y;  
 	        Z += z; 
+	        
+	        double Lon = Math.Atan2(Y, X);  
+	        double Hyp = Math.Sqrt(X * X + Y * Y);  
+	        double Lat = Math.Atan2(Z, Hyp);  
+	        return new GeoCoordinate(Lat * 180 / Math.PI, Lon * 180 / Math.PI);  
 		}
 		
 		return null;
