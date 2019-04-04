@@ -11,23 +11,54 @@ public class CPI_index {
 
 	public static void main(String[] args) {
 		// read csv file
-		String filePath = new String("/Users/aaronkb/Desktop/512x512.csv");
-		ReadCSV file_csv = new ReadCSV(filePath);
-		ArrayList<clustered_point> points = file_csv.read(filePath);
-//		System.out.printf("test %d",file_csv.num_cluster);
+		
+		String filePath1 = new String("D:\\科研相关\\聚类评价算法\\newHubei_enter\\Hubei_enter\\dbscan1.csv"); //remember to change the path
+		String filePath2 = new String("D:\\科研相关\\聚类评价算法\\newHubei_enter\\Hubei_enter\\dbscan2.csv");
+		String filePath3 = new String("D:\\科研相关\\聚类评价算法\\newHubei_enter\\Hubei_enter\\dbscan3.csv");
+		String filePath4 = new String("D:\\科研相关\\聚类评价算法\\newHubei_enter\\Hubei_enter\\dbscan4.csv");
+		String filePath5 = new String("D:\\科研相关\\聚类评价算法\\newHubei_enter\\Hubei_enter\\hubei_512.csv");
+		String filePath6 = new String("D:\\科研相关\\聚类评价算法\\newHubei_enter\\Hubei_enter\\hubei_1024.csv");
+		String filePath7 = new String("D:\\科研相关\\聚类评价算法\\newHubei_enter\\Hubei_enter\\hubei_2048.csv");
+		String filePath8 = new String("D:\\科研相关\\聚类评价算法\\newHubei_enter\\Hubei_enter\\hubei_4096.csv");
+		String [] filePath = {filePath1,filePath2,filePath3,filePath4,filePath5,filePath6,filePath7,filePath8};
+		
+		for(int i = 0; i < 8; i ++) {
+			//calculate new index for each data set
+			computeIndex(i,filePath);
+		}
+	}
+	private static void computeIndex(int fileId, String[] filePath) {
+		// compute cp index for file i
+		long startTime = System.currentTimeMillis();
+		centers = null;
+		
+		ReadCSV file_csv = new ReadCSV(filePath[fileId]);
+		ArrayList<clustered_point> points = file_csv.read(filePath[fileId]);
 		num_cluster = file_csv.num_cluster;
 		centers = new clustered_point[file_csv.num_cluster];
 		for(int i = 0; i < num_cluster; i++) {
 			centers[i] = cal_center(points,i+1);
 		}
-//		System.out.print(centers[186].index);
 		cp = 0;
 		//calculate cp of all points
 		for (int i = 0; i < num_cluster; i ++) {
 			cp += cal_cp(points,centers[i],i+1);
 		}
-		System.out.print(cp);
+		cp /= num_cluster;
+		long endTime = System.currentTimeMillis();
 
+			try {
+				File file = new File("D:\\科研相关\\聚类评价算法\\newHubei_enter\\Hubei_enter\\cp_index.txt");
+				FileOutputStream Out = new FileOutputStream(file,true);	
+				String content = "Total time cost for file [" + fileId + "]: " + (endTime - startTime) + "\n";
+				Out.write(content.getBytes());
+				content = "result of file [" + fileId + "]: " + cp + "\n";
+				Out.write(content.getBytes());
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
 		
 	}
 	public static double cal_cp(ArrayList<clustered_point> cpoints,clustered_point cluster_center,int index) {
@@ -36,11 +67,18 @@ public class CPI_index {
 		int count = 0;
 		for(clustered_point cpoint : cpoints) {
 			if(cpoint.index == index) {
-				cpi += getDistance(cpoint.point, cluster_center.point);
+				double temp = getDistance(cpoint.point, cluster_center.point);
+				if(Double.isNaN(temp)) {
+					cpi += 0;
+				}
+				else {
+					cpi += temp;
+				}
 				count ++;
 			}
 		}
 		cpi = cpi / count;
+		
 		return cpi;
 	}
 	public static clustered_point cal_center(ArrayList<clustered_point> cpoints,int index) {
